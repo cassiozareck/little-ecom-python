@@ -17,6 +17,8 @@ import os
 @require_http_methods(["POST"])
 def register(request):
     try:
+        # In Go this would give me way more job but in django we can quickly parse
+        # body as a map
         data = json.loads(request.body)
         email = data['email']
         password = data['password']
@@ -24,7 +26,10 @@ def register(request):
         # Validate email
         validate_email(email)
 
-        # Since we're using email as username we filter by email field 
+        # Since we're using email as username we filter by email field.
+        # This is something different. We're using an orm to do DB operations
+        # The orm functions are stored under objects which is from AccountManager
+        # Type.
         if Account.objects.filter(email=email).exists():
             return JsonResponse({'error': 'Account already exists'}, status=400)
         
@@ -63,9 +68,38 @@ def sign_in(request):
     if user is None:
         return JsonResponse({'error': 'Invalid credentials'}, status=400)
     
+    # Normal token encoding function
     token = jwt.encode({
         'email': user.email,
         'exp': int((datetime.utcnow() + timedelta(days=30)).timestamp())
     }, os.getenv("JWT_KEY"), algorithm="HS256")
 
     return JsonResponse({'token': token}, status=200)
+
+@csrf_exempt
+def validate_token(request):
+    try:
+        data = json.loads(request.body)
+        tokenString = data.get('token')
+        if not tokenString:
+            return HttpResponseBadRequest("Token is required")
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    try:
+        jwt_key = os.getenv('JWT_KEY')
+        if not jwt_key:
+            return HttpResponse("JWT key not found", status=500)
+
+        token = jwt.decode(tokenString, jwt_key, algorithms=["HS256"])
+        email = token.get('email')
+        exp = token.get('exp')
+
+        if email and exp:
+            return JsonResponse({'email': email, 'exp': exp})
+        else:
+            return HttpResponse("Invalid token", status=401)
+    except jwt.ExpiredSignatureError:
+        return HttpResponse("Token expired", status=401)
+    except jwt.InvalidTokenError:
+        return HttpResponse("Invalid token", status=401)
