@@ -77,6 +77,7 @@ def sign_in(request):
     return JsonResponse({'token': token}, status=200)
 
 @csrf_exempt
+@require_http_methods(["POST"])
 def validate_token(request):
     try:
         data = json.loads(request.body)
