@@ -8,5 +8,19 @@ class Item(models.Model):
     def is_owner(self, owner):
         return self.owner == owner
 
+    def clean(self):
+        if self.price < 0:
+            raise ValidationError('Price cannot be negative')
+        if self.name == '':
+            raise ValidationError('Name cannot be empty')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'price': self.price,
+            'owner': self.owner
+        }
+    
     def __str__(self):
         return f"{self.name} - {self.price} - {self.owner}"

@@ -19,6 +19,7 @@ class JWTValidationMiddleware:
                 )
                 
                 if response.status_code == 200:
+                    # Here it's attaching the response which is the email into the request
                     request.user_info = response.json()
                 else:
                     return JsonResponse({"error": "Invalid or expired token"}, status=response.status_code)
