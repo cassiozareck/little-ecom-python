@@ -38,7 +38,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "authentication",
+    "backend",
 ]
+AUTH_USER_MODEL = 'authentication.Account'  # This line is added to specify your custom user model
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -48,8 +50,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "backend.JWTValidationMiddleware",
+    "backend.middlewares.JWTValidationMiddleware",
 ]
+
 
 BASE_URL = 'http://localhost:8000'
 

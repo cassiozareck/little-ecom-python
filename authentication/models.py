@@ -7,9 +7,9 @@ class AccountManager(BaseUserManager):
     def create_user(self, email, password=None):
         if not email:
             raise ValueError('Users must have an email address')
-        user = self.model(email=self.normalize_email(email))
-        user.password = make_password(password)
-        user.save(using=self._db)
+        user = self.model(email=self.normalize_email(email))  # Instantiate an account model
+        user.set_password(password)  # This is the correct way to set the password
+        user.save(using=self._db)    # Use model save's function
         return user
 
 class Account(AbstractBaseUser):
