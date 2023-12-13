@@ -1,7 +1,8 @@
 # views.py
 import json
 
-from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest, HttpResponseNotFound
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest, HttpResponseNotFound, \
+    HttpResponseServerError
 from django.views.decorators.http import require_http_methods
 from .models import Item
 from django.shortcuts import get_object_or_404
@@ -38,29 +39,33 @@ def remove_item(request, item_id):
 def add_item(request):
     try:
         data = json.loads(request.body)
-       
+
+        # Extract email and validate it
+        email = data.get('email')
         if not email:
             return HttpResponseBadRequest("Email is required")
+
+        # Validate other required fields
+        name = data.get('name')
+        price = data.get('price')
+        if not all([name, price]):
+            return HttpResponseBadRequest("Missing name or price")
 
         username = email.split('@')[0]
 
         # Create a new Item instance
         item = Item.objects.create(
             owner=username,
-            name=data.get('name'),
-            price=data.get('price')
+            name=name,
+            price=price
         )
 
-        item.clean()
-
-        # Return the ID of the newly created item
         return JsonResponse({'id': item.id}, status=201)
 
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Invalid JSON")
-    except KeyError:
-        return HttpResponseBadRequest("Missing fields in JSON")
-
+    except KeyError as e:
+        return HttpResponseBadRequest(f"Missing field in JSON: {e}")
 
 @csrf_exempt
 @require_http_methods(["PATCH"])
@@ -93,11 +98,9 @@ def update_item(request, id):
 def get_items(request):
     try:
         items = Item.objects.all()
-        items_data = [item.to_dict() for item in items]  # Ensure Item model has a to_dict method
+        items_data = [item.to_dict() for item in items]
         return JsonResponse({'items': items_data}, safe=False)
     except Exception as e:
-        # Log the exception for debugging purposes
-        # Use a logger in production code
         print(f"Error retrieving items: {e}")
         return HttpResponseServerError("Internal Server Error")
 
@@ -126,15 +129,13 @@ def buy_item(request):
         if item.owner == buyer:
             return HttpResponseBadRequest("Cannot buy your own item")
 
-        Item.objects.delete(id=item_id)
+        Item.objects.filter(id=item_id).delete()
 
         return JsonResponse({'message': 'Item bought successfully', 'item_id': str(item_id)}, status=200)
 
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Invalid JSON")
     except Exception as e:
-        # Log the exception for debugging purposes
-        # Use a logger in production code
         print(f"Error in buying item: {e}")
         return HttpResponseServerError("Internal Server Error")
 

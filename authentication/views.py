@@ -1,13 +1,14 @@
 from django.shortcuts import render
 
 # views.py
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-import datetime
+from datetime import datetime, timedelta
+
 from django.contrib.auth import authenticate
 from .models import Account
 import json
@@ -71,8 +72,9 @@ def sign_in(request):
     # Normal token encoding function
     token = jwt.encode({
         'email': user.email,
-        'exp': int((datetime.utcnow() + datetime.timedelta(days=30)).timestamp())
+        'exp': int((datetime.utcnow() + timedelta(days=30)).timestamp())
     }, os.getenv("JWT_KEY"), algorithm="HS256")
+
     return JsonResponse({'token': token}, status=200)
 
 @csrf_exempt
